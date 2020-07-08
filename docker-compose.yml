@@ -1,0 +1,46 @@
+version: '3'
+services:
+  jenkins:
+    container_name: jenkins
+    image: jenkins-docker
+    build:
+      context: ./pipeline
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./jenkins_home:/var/jenkins_home
+    environment:
+      - DOCKER_HOST=tcp://socat:2375
+    links:
+      - socat
+    networks:
+      - net
+  remote_host:
+    container_name: remote-host
+    image: remote-host
+    build:
+      context: ./centos7
+    volumes:
+      - ./aws-s3.sh:/tmp/script.sh
+    networks:
+      - net
+  db_host:
+    container_name: db
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=1234
+    volumes:
+      - ./db_data:/var/lib/mysql
+    networks:
+      - net
+  socat:
+    image: bpack/socat
+    command: TCP4-LISTEN:2375,fork,reuseaddr UNIX-CONNECT:/var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    expose:
+      - '2375'
+    networks:
+      - net
+networks:
+  net:
